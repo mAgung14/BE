@@ -13,3 +13,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/kuis', [KuisController::class, 'store']);
     Route::get('/kuis/summary', [KuisController::class, 'summary']);
 });
+
+// JWT-protected routes (allow clients using JWT tokens)
+Route::middleware('auth:api')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/kuis', [KuisController::class, 'store']);
+    Route::get('/kuis/summary', [KuisController::class, 'summary']);
+});
