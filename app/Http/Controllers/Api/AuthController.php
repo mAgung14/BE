@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
@@ -20,8 +21,7 @@ class AuthController extends Controller
             'email' => $request->validated('email'),
             'password' => $request->validated('password'),
         ]);
-
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $token = JWTAuth::fromUser($user);
 
         return response()->json([
             'message' => 'Registrasi berhasil.',
@@ -32,21 +32,23 @@ class AuthController extends Controller
                     'email' => $user->email,
                 ],
                 'token' => $token,
+                'token_type' => 'bearer',
+                'expires_in' => JWTAuth::factory()->getTTL() * 60,
             ],
         ], 201);
     }
 
     public function login(LoginRequest $request): JsonResponse
     {
-        $user = User::query()->where('email', $request->validated('email'))->first();
+        $credentials = $request->only('email', 'password');
 
-        if (! $user || ! Hash::check($request->validated('password'), $user->password)) {
+        if (! $token = JWTAuth::attempt($credentials)) {
             throw ValidationException::withMessages([
                 'email' => ['Email atau kata sandi salah.'],
             ]);
         }
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $user = auth()->user();
 
         return response()->json([
             'message' => 'Login berhasil.',
@@ -57,22 +59,26 @@ class AuthController extends Controller
                     'email' => $user->email,
                 ],
                 'token' => $token,
+                'token_type' => 'bearer',
+                'expires_in' => JWTAuth::factory()->getTTL() * 60,
             ],
         ]);
     }
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        try {
+            JWTAuth::parseToken()->invalidate();
+        } catch (\Exception $e) {
+            // ignore
+        }
 
-        return response()->json([
-            'message' => 'Logout berhasil.',
-        ]);
+        return response()->json(['message' => 'Logout berhasil.']);
     }
 
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $user = JWTAuth::parseToken()->authenticate();
 
         return response()->json([
             'data' => [
