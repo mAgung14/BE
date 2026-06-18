@@ -31,7 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/kuis/{kuisId}/soal/reorder', [SoalController::class, 'reorder']);
 });
 
-// JWT-protected routes (allow clients using JWT tokens)
+// JWT-protected
 Route::middleware('auth:api')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
