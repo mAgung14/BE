@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
-use App\Models\User;
+use App\Models\Guru;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -16,11 +16,14 @@ class AuthController extends Controller
 {
     public function register(RegisterRequest $request): JsonResponse
     {
-        $user = User::query()->create([
-            'name' => $request->validated('name'),
+        $user = Guru::query()->create([
+            'nama_lengkap' => $request->validated('name'),
             'email' => $request->validated('email'),
             'password' => $request->validated('password'),
+            'mapel' => $request->validated('mapel'),
+            'role' => 'guru',
         ]);
+
         $token = JWTAuth::fromUser($user);
 
         return response()->json([
@@ -28,8 +31,10 @@ class AuthController extends Controller
             'data' => [
                 'user' => [
                     'id' => $user->id,
-                    'name' => $user->name,
+                    'name' => $user->nama_lengkap,
                     'email' => $user->email,
+                    'role' => $user->role,
+                    'mapel' => $user->mapel,
                 ],
                 'token' => $token,
                 'token_type' => 'bearer',
@@ -55,8 +60,10 @@ class AuthController extends Controller
             'data' => [
                 'user' => [
                     'id' => $user->id,
-                    'name' => $user->name,
+                    'name' => $user->nama_lengkap,
                     'email' => $user->email,
+                    'role' => $user->role,
+                    'mapel' => $user->mapel,
                 ],
                 'token' => $token,
                 'token_type' => 'bearer',
@@ -83,8 +90,10 @@ class AuthController extends Controller
         return response()->json([
             'data' => [
                 'id' => $user->id,
-                'name' => $user->name,
+                'name' => $user->nama_lengkap,
                 'email' => $user->email,
+                'role' => $user->role,
+                'mapel' => $user->mapel,
             ],
         ]);
     }
