@@ -8,6 +8,13 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+// Public Quiz Routes
+Route::get('/kuis', [KuisController::class, 'index']);
+Route::get('/kuis/publik', [KuisController::class, 'publicList']);
+Route::get('/kuis/public', [KuisController::class, 'publicList']);
+Route::get('/kuis/publik/{id}', [KuisController::class, 'publicShow']);
+Route::get('/kuis/public/{id}', [KuisController::class, 'publicShow']);
+Route::post('/kuis/join', [KuisController::class, 'joinByCode']);
 
 // JWT-protected
 Route::middleware('auth:api')->group(function () {
@@ -15,7 +22,6 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     
     // Quiz management
-    Route::get('/kuis', [KuisController::class, 'index']);
     Route::post('/kuis', [KuisController::class, 'store']);
     Route::get('/kuis/{id}', [KuisController::class, 'show']);
     Route::put('/kuis/{id}', [KuisController::class, 'update']);

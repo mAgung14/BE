@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Guru;
+use App\Models\Kuis;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -145,5 +146,170 @@ class AuthRegisterTest extends TestCase
 
         $questionResponse->assertStatus(201)
             ->assertJsonPath('data.soal_soal', 'Siapa presiden pertama Indonesia?');
+    }
+
+    /**
+     * Test public users can list public quizzes.
+     */
+    public function test_public_user_can_view_published_public_quizzes(): void
+    {
+        $guru = Guru::factory()->create();
+
+        // 1. Create a published public quiz
+        $publicQuiz = Kuis::create([
+            'guru_id' => $guru->id,
+            'judul' => 'Kuis Publik Matematika',
+            'kategori' => 'Matematika',
+            'soal_waktu' => 30,
+            'tgl_dibuat' => now(),
+            'akses' => 'publik',
+            'is_published' => true,
+            'status' => 'aktif',
+            'kode_kuis' => 'PUB123',
+        ]);
+
+        // 2. Create a private quiz
+        $privateQuiz = Kuis::create([
+            'guru_id' => $guru->id,
+            'judul' => 'Kuis Private Fisika',
+            'kategori' => 'Fisika',
+            'soal_waktu' => 30,
+            'tgl_dibuat' => now(),
+            'akses' => 'private',
+            'is_published' => true,
+            'status' => 'aktif',
+            'kode_kuis' => 'PRIV12',
+        ]);
+
+        // 3. Make guest request to /api/kuis/publik
+        $response1 = $this->getJson('/api/kuis/publik');
+        $response1->assertStatus(200)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.judul', 'Kuis Publik Matematika');
+
+        // 4. Make guest request to /api/kuis (which should also fall back to public list)
+        $response2 = $this->getJson('/api/kuis');
+        $response2->assertStatus(200)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.judul', 'Kuis Publik Matematika');
+    }
+
+    /**
+     * Test public quiz does not get code and private gets code.
+     */
+    public function test_public_quiz_does_not_get_code_and_private_gets_code(): void
+    {
+        $guru = Guru::factory()->create();
+        $token = \PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth::fromUser($guru);
+
+        // 1. Create public quiz
+        $responsePublic = $this->postJson('/api/kuis', [
+            'judul' => 'Kuis Publik Fisika',
+            'kategori' => 'Fisika',
+            'soal_waktu' => 45,
+            'akses' => 'publik',
+        ], [
+            'Authorization' => 'Bearer ' . $token,
+        ]);
+        $responsePublic->assertStatus(201)
+            ->assertJsonPath('data.kode_kuis', null);
+
+        // 2. Create private quiz
+        $responsePrivate = $this->postJson('/api/kuis', [
+            'judul' => 'Kuis Private Kimia',
+            'kategori' => 'Kimia',
+            'soal_waktu' => 45,
+            'akses' => 'private',
+        ], [
+            'Authorization' => 'Bearer ' . $token,
+        ]);
+        $responsePrivate->assertStatus(201);
+        $this->assertNotNull($responsePrivate->json('data.kode_kuis'));
+    }
+
+    /**
+     * Test public user can view published public quiz details and questions.
+     */
+    public function test_public_user_can_view_published_public_quiz_details_and_questions(): void
+    {
+        $guru = Guru::factory()->create();
+
+        // Create public published quiz
+        $publicQuiz = Kuis::create([
+            'guru_id' => $guru->id,
+            'judul' => 'Kuis Publik Sejarah',
+            'kategori' => 'Sejarah',
+            'soal_waktu' => 30,
+            'tgl_dibuat' => now(),
+            'akses' => 'publik',
+            'is_published' => true,
+            'status' => 'aktif',
+            'kode_kuis' => null,
+        ]);
+
+        // Add questions to it
+        $publicQuiz->soal()->create([
+            'soal_soal' => 'Siapa Patih Gajah Mada?',
+            'tipe_soal' => 'pilihan_ganda',
+            'poin' => 5,
+            'urutan' => 1,
+            'jawaban_a' => 'A',
+            'jawaban_b' => 'B',
+            'jawaban_c' => 'C',
+            'jawaban_d' => 'D',
+            'jawaban_benar' => 'a',
+        ]);
+
+        // Make guest request to /api/kuis/publik/{id}
+        $response = $this->getJson("/api/kuis/publik/{$publicQuiz->kuis_id}");
+        $response->assertStatus(200)
+            ->assertJsonPath('data.judul', 'Kuis Publik Sejarah')
+            ->assertJsonCount(1, 'data.soal')
+            ->assertJsonPath('data.soal.0.soal_soal', 'Siapa Patih Gajah Mada?')
+            ->assertJsonPath('data.soal.0.jawaban_benar', 'a');
+    }
+
+    /**
+     * Test user can join private quiz by code.
+     */
+    public function test_user_can_join_private_quiz_by_code(): void
+    {
+        $guru = Guru::factory()->create();
+
+        // Create private published quiz
+        $privateQuiz = Kuis::create([
+            'guru_id' => $guru->id,
+            'judul' => 'Kuis Private Geografi',
+            'kategori' => 'Geografi',
+            'soal_waktu' => 30,
+            'tgl_dibuat' => now(),
+            'akses' => 'private',
+            'is_published' => true,
+            'status' => 'aktif',
+            'kode_kuis' => 'GEO789',
+        ]);
+
+        // Add questions to it
+        $privateQuiz->soal()->create([
+            'soal_soal' => 'Gunung tertinggi di dunia?',
+            'tipe_soal' => 'pilihan_ganda',
+            'poin' => 5,
+            'urutan' => 1,
+            'jawaban_a' => 'Everest',
+            'jawaban_b' => 'K2',
+            'jawaban_c' => 'Kilimanjaro',
+            'jawaban_d' => 'Fuji',
+            'jawaban_benar' => 'a',
+        ]);
+
+        // Make guest request to /api/kuis/join
+        $response = $this->postJson("/api/kuis/join", [
+            'kode_kuis' => 'GEO789',
+        ]);
+        $response->assertStatus(200)
+            ->assertJsonPath('data.judul', 'Kuis Private Geografi')
+            ->assertJsonCount(1, 'data.soal')
+            ->assertJsonPath('data.soal.0.soal_soal', 'Gunung tertinggi di dunia?')
+            ->assertJsonPath('data.soal.0.jawaban_benar', 'a');
     }
 }
