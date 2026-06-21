@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::create('riwayat_kuis', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id')->nullable(); // pengguna_id
+            $table->unsignedBigInteger('guru_id')->nullable();
             $table->unsignedBigInteger('kuis_id');
             $table->dateTime('waktu_mulai');
             $table->dateTime('waktu_selesai')->nullable();
             $table->integer('total_skor')->default(0);
             $table->string('status'); // ongoing, completed, failed
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
+            $table->foreign('guru_id')->references('id')->on('guru')->onDelete('set null');
             $table->foreign('kuis_id')->references('kuis_id')->on('kuis')->onDelete('cascade');
             $table->timestamps();
         });

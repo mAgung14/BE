@@ -17,7 +17,7 @@ class SoalController extends Controller
      */
     public function index(string $kuisId): JsonResponse
     {
-        $kuis = Kuis::findOrFail($kuisId, 'kuis_id');
+        $kuis = Kuis::findOrFail($kuisId);
 
         // Check authorization
         if ($kuis->guru_id !== auth()->user()->id) {
@@ -39,7 +39,7 @@ class SoalController extends Controller
      */
     public function store(StoreSoalRequest $request): JsonResponse
     {
-        $kuis = Kuis::findOrFail($request->kuis_id, 'kuis_id');
+        $kuis = Kuis::findOrFail($request->kuis_id);
 
         // Check authorization
         if ($kuis->guru_id !== auth()->user()->id) {
@@ -231,7 +231,7 @@ class SoalController extends Controller
      */
     public function reorder(Request $request, string $kuisId): JsonResponse
     {
-        $kuis = Kuis::findOrFail($kuisId, 'kuis_id');
+        $kuis = Kuis::findOrFail($kuisId);
 
         // Check authorization
         if ($kuis->guru_id !== auth()->user()->id) {
