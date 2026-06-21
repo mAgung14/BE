@@ -99,7 +99,7 @@ class KuisController extends Controller
      */
     public function show(string $id): JsonResponse
     {
-        $kuis = Kuis::with(['soal', 'guru'])->findOrFail($id, 'kuis_id');
+        $kuis = Kuis::with(['soal', 'guru'])->findOrFail($id);
 
         // Check authorization
         if ($kuis->guru_id !== auth()->user()->id) {
@@ -159,7 +159,7 @@ class KuisController extends Controller
      */
     public function update(UpdateKuisRequest $request, string $id): JsonResponse
     {
-        $kuis = Kuis::findOrFail($id, 'kuis_id');
+        $kuis = Kuis::findOrFail($id);
 
         // Check authorization
         if ($kuis->guru_id !== auth()->user()->id) {
@@ -197,7 +197,7 @@ class KuisController extends Controller
      */
     public function destroy(string $id): JsonResponse
     {
-        $kuis = Kuis::findOrFail($id, 'kuis_id');
+        $kuis = Kuis::findOrFail($id);
 
         // Check authorization
         if ($kuis->guru_id !== auth()->user()->id) {
@@ -245,7 +245,7 @@ class KuisController extends Controller
      */
     public function publish(string $id): JsonResponse
     {
-        $kuis = Kuis::findOrFail($id, 'kuis_id');
+        $kuis = Kuis::findOrFail($id);
 
         // Check authorization
         if ($kuis->guru_id !== auth()->user()->id) {
