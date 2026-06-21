@@ -5,14 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 
-#[Fillable(['user_id', 'kuis_id', 'waktu_mulai', 'waktu_selesai', 'total_skor', 'status'])]
+#[Fillable(['guru_id', 'kuis_id', 'waktu_mulai', 'waktu_selesai', 'total_skor', 'status'])]
 class RiwayatKuis extends Model
 {
     protected $table = 'riwayat_kuis';
 
-    public function user()
+    public function guru()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(Guru::class, 'guru_id');
     }
 
     public function kuis()
