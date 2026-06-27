@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\PesertaSubmitKuis;
 use App\Http\Controllers\Controller;
+use App\Models\Guru;
 use App\Models\Kuis;
 use App\Models\RiwayatKuis;
 use Illuminate\Http\JsonResponse;
@@ -341,6 +343,18 @@ class HasilKuisController extends Controller
         }
 
         $totalSoal = $kuis->countSoal();
+
+        // ── Broadcast event realtime ke guru pemilik kuis ─────────────────
+        $durasi = $riwayat->durasi ?? '00:00';
+        event(new PesertaSubmitKuis(
+            guruId:       $kuis->guru_id,
+            kuisId:       $kuis->kuis_id,
+            judulKuis:    $kuis->judul,
+            namaPeserta:  $validated['nama_peserta'],
+            totalSkor:    $totalSkor,
+            durasi:       $durasi,
+            waktuSelesai: $validated['waktu_selesai'],
+        ));
 
         return response()->json([
             'message' => 'Jawaban berhasil disimpan.',

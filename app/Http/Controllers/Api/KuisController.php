@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\KuisDipublikasikan;
 use App\Exports\KuisTemplateExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ImportKuisRequest;
@@ -332,15 +333,23 @@ class KuisController extends Controller
 
         $kuis->update([
             'is_published' => true,
-            'status' => 'aktif',
+            'status'       => 'aktif',
         ]);
+
+        // Broadcast event ke guru
+        event(new KuisDipublikasikan(
+            guruId:   $kuis->guru_id,
+            kuisId:   $kuis->kuis_id,
+            judulKuis: $kuis->judul,
+            kodeKuis:  $kuis->kode_kuis,
+        ));
 
         return response()->json([
             'message' => 'Kuis berhasil dipublikasikan.',
             'data' => [
-                'kuis_id' => $kuis->kuis_id,
+                'kuis_id'      => $kuis->kuis_id,
                 'is_published' => $kuis->is_published,
-                'status' => $kuis->status,
+                'status'       => $kuis->status,
             ],
         ]);
     }
