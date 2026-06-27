@@ -11,6 +11,11 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+// Email Verification Routes
+Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+    ->middleware(['signed'])
+    ->name('verification.verify');
+
 // Public Quiz Routes
 Route::get('/kuis', [KuisController::class, 'index']);
 Route::get('/kuis/publik', [KuisController::class, 'publicList']);
@@ -29,6 +34,11 @@ Route::get('/kuis/template-excel', [KuisController::class, 'downloadTemplate']);
 Route::middleware('auth:api')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    
+    // Resend Email Verification
+    Route::post('/email/verification-notification', [AuthController::class, 'resendVerification'])
+        ->middleware('throttle:6,1')
+        ->name('verification.send');
     
     // Quiz management — route statis HARUS sebelum route {id}
     Route::post('/kuis', [KuisController::class, 'store']);

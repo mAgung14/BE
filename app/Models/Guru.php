@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 
 #[Fillable(['nama_lengkap', 'email', 'password', 'mapel', 'role'])]
 #[Hidden(['password', 'remember_token'])]
-class Guru extends Authenticatable implements JWTSubject
+class Guru extends Authenticatable implements JWTSubject, MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable;
 
