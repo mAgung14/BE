@@ -20,19 +20,23 @@ Route::post('/kuis/join', [KuisController::class, 'joinByCode']);
 // Submit jawaban kuis (tidak perlu login — peserta hanya isi nama)
 Route::post('/kuis/{kuisId}/submit', [HasilKuisController::class, 'submit']);
 
+// Download template Excel (tidak perlu login — kemudahan akses)
+Route::get('/kuis/template-excel', [KuisController::class, 'downloadTemplate']);
+
 // JWT-protected
 Route::middleware('auth:api')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     
-    // Quiz management
+    // Quiz management — route statis HARUS sebelum route {id}
     Route::post('/kuis', [KuisController::class, 'store']);
+    Route::get('/kuis/summary', [KuisController::class, 'summary']);
+    Route::post('/kuis/import-excel', [KuisController::class, 'importExcel']);
+
     Route::get('/kuis/{id}', [KuisController::class, 'show']);
     Route::put('/kuis/{id}', [KuisController::class, 'update']);
     Route::delete('/kuis/{id}', [KuisController::class, 'destroy']);
     Route::post('/kuis/{id}/publish', [KuisController::class, 'publish']);
-    Route::post('/kuis/import-excel', [KuisController::class, 'importExcel']);
-    Route::get('/kuis/summary', [KuisController::class, 'summary']);
     
     // Questions management
     Route::get('/kuis/{kuisId}/soal', [SoalController::class, 'index']);

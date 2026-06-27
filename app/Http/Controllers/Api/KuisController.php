@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exports\KuisTemplateExport;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ImportKuisRequest;
 use App\Http\Requests\StoreKuisRequest;
 use App\Http\Requests\UpdateKuisRequest;
-use App\Http\Requests\ImportKuisRequest;
+use App\Imports\KuisImport;
 use App\Models\Kuis;
 use App\Models\Soal;
 use Illuminate\Http\JsonResponse;
@@ -345,76 +347,62 @@ class KuisController extends Controller
 
     /**
      * Import quiz from Excel
+     *
+     * Struktur file Excel:
+     *  Baris 1 : Header kuis  [Judul, Deskripsi, Kategori, Waktu(menit), Istirahat(detik), Akses]
+     *  Baris 2+: Soal-soal   [Pertanyaan, Poin, JawA, JawB, JawC, JawD, JawabanBenar(a/b/c/d)]
      */
     public function importExcel(ImportKuisRequest $request): JsonResponse
     {
         try {
-            $file = $request->file('file');
-            
-            // Read excel file
-            $data = Excel::toArray([], $file);
-            $rows = $data[0];
-
-            if (count($rows) < 2) {
-                return response()->json([
-                    'message' => 'File Excel harus memiliki data kuis dan soal.',
-                ], 422);
-            }
-
-            // Parse header
-            $kuisData = $rows[0];
-            $akses = strtolower($kuisData[5] ?? 'private');
-            $kodeKuis = ($akses === 'publik') ? null : Kuis::generateKodeKuis();
-            
-            $kuis = Kuis::create([
-                'guru_id' => auth()->user()->id,
-                'judul' => $kuisData[0] ?? 'Kuis Impor',
-                'deskripsi' => $kuisData[1] ?? '',
-                'kategori' => $kuisData[2] ?? 'Umum',
-                'soal_waktu' => $kuisData[3] ?? 60,
-                'perm_istirahat' => $kuisData[4] ?? 0,
-                'akses' => $akses,
-                'kode_kuis' => $kodeKuis,
-                'status' => 'draft',
-                'is_published' => false,
-            ]);
-
-            // Parse questions
-            $urutan = 1;
-            for ($i = 1; $i < count($rows); $i++) {
-                $row = $rows[$i];
-                if (empty($row[0])) continue;
-
-                Soal::create([
-                    'kuis_id' => $kuis->kuis_id,
-                    'soal_soal' => $row[0] ?? '',
-                    'tipe_soal' => 'pilihan_ganda',
-                    'poin' => $row[1] ?? 1,
-                    'urutan' => $urutan,
-                    'jawaban_a' => $row[2] ?? '',
-                    'jawaban_b' => $row[3] ?? '',
-                    'jawaban_c' => $row[4] ?? '',
-                    'jawaban_d' => $row[5] ?? '',
-                    'jawaban_benar' => strtolower($row[6] ?? 'a'),
-                ]);
-
-                $urutan++;
-            }
+            $import = new KuisImport(auth()->id());
+            Excel::import($import, $request->file('file'));
 
             return response()->json([
                 'message' => 'Kuis berhasil diimpor dari Excel.',
                 'data' => [
-                    'kuis_id' => $kuis->kuis_id,
-                    'judul' => $kuis->judul,
-                    'jumlah_soal' => $kuis->countSoal(),
-                    'kode_kuis' => $kuis->kode_kuis,
+                    'kuis_id'     => $import->kuis->kuis_id,
+                    'judul'       => $import->kuis->judul,
+                    'jumlah_soal' => $import->jumlahSoalDiimpor,
+                    'kode_kuis'   => $import->kuis->kode_kuis,
+                    'akses'       => $import->kuis->akses,
+                    'status'      => $import->kuis->status,
                 ],
             ], 201);
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validasi file Excel gagal.',
+                'errors'  => $e->failures(),
+            ], 422);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'message' => 'Format file Excel tidak valid: ' . $e->getMessage(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Gagal mengimpor file Excel: ' . $e->getMessage(),
-            ], 422);
+            ], 500);
         }
+    }
+
+    /**
+     * Download template file Excel untuk import kuis.
+     *
+     * Melayani file pre-generated dari storage untuk performa optimal.
+     * File di-regenerate otomatis jika belum ada.
+     */
+    public function downloadTemplate()
+    {
+        $path     = 'templates/template-import-kuis.xlsx';
+        $filename = 'template-import-kuis.xlsx';
+
+        // Jika file sudah ada, sajikan langsung (lebih cepat)
+        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+            return \Illuminate\Support\Facades\Storage::disk('public')->download($path, $filename);
+        }
+
+        // Generate on-the-fly jika file belum ada
+        return Excel::download(new KuisTemplateExport(), $filename);
     }
 
     /**
