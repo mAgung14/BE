@@ -39,6 +39,7 @@ class AuthController extends Controller
                     'email' => $user->email,
                     'role' => $user->role,
                     'mapel' => $user->mapel,
+                    'email_verified' => $user->hasVerifiedEmail(),
                 ],
                 'token' => $token,
                 'token_type' => 'bearer',
@@ -59,6 +60,13 @@ class AuthController extends Controller
 
         $user = auth()->user();
 
+        if (! $user->hasVerifiedEmail()) {
+            JWTAuth::invalidate($token);
+            return response()->json([
+                'message' => 'Email Anda belum diverifikasi. Silakan cek email Anda untuk melakukan aktivasi terlebih dahulu.'
+            ], 403);
+        }
+
         return response()->json([
             'message' => 'Login berhasil.',
             'data' => [
@@ -68,6 +76,7 @@ class AuthController extends Controller
                     'email' => $user->email,
                     'role' => $user->role,
                     'mapel' => $user->mapel,
+                    'email_verified' => $user->hasVerifiedEmail(),
                 ],
                 'token' => $token,
                 'token_type' => 'bearer',
@@ -98,6 +107,7 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'role' => $user->role,
                 'mapel' => $user->mapel,
+                'email_verified' => $user->hasVerifiedEmail(),
             ],
         ]);
     }
@@ -123,7 +133,11 @@ class AuthController extends Controller
 
     public function resendVerification(Request $request): JsonResponse
     {
-        $user = auth('api')->user();
+        $request->validate([
+            'email' => 'required|email|exists:guru,email',
+        ]);
+
+        $user = Guru::where('email', $request->email)->first();
 
         if ($user->hasVerifiedEmail()) {
             return response()->json([

@@ -61,4 +61,14 @@ class Guru extends Authenticatable implements JWTSubject, MustVerifyEmail
     {
         return $this->hasMany(RiwayatKuis::class, 'guru_id');
     }
+
+    /**
+     * Send the email verification notification.
+     *
+     * @return void
+     */
+    public function sendEmailVerificationNotification()
+    {
+        $this->notify(new \App\Notifications\CustomVerifyEmail);
+    }
 }
