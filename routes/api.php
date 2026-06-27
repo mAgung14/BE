@@ -3,7 +3,9 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\HasilKuisController;
 use App\Http\Controllers\Api\KuisController;
+use App\Http\Controllers\Api\NotifikasiController;
 use App\Http\Controllers\Api\SoalController;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -50,4 +52,10 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/kuis/{kuisId}/hasil/export', [HasilKuisController::class, 'exportCsv']);
     Route::get('/kuis/{kuisId}/hasil/{riwayatId}', [HasilKuisController::class, 'show']);
     Route::get('/kuis/{kuisId}/hasil', [HasilKuisController::class, 'index']);
+
+    // ── Pusher broadcasting auth (untuk private channel) ─────────────────
+    // Frontend mengirim request ke sini saat subscribe ke private-guru.{id}
+    Route::post('/broadcasting/auth', function (\Illuminate\Http\Request $request) {
+        return Broadcast::auth($request);
+    });
 });
