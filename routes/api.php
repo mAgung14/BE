@@ -11,6 +11,15 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+// Email Verification Routes
+Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+    ->middleware(['signed'])
+    ->name('verification.verify');
+
+Route::post('/email/verification-notification', [AuthController::class, 'resendVerification'])
+    ->middleware('throttle:6,1')
+    ->name('verification.send');
+
 // Public Quiz Routes
 Route::get('/kuis', [KuisController::class, 'index']);
 Route::get('/kuis/publik', [KuisController::class, 'publicList']);
@@ -30,8 +39,10 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     
-    // Quiz management — route statis HARUS sebelum route {id}
-    Route::post('/kuis', [KuisController::class, 'store']);
+    // Quiz management (Hanya bisa diakses jika email sudah diverifikasi)
+    Route::middleware('verified')->group(function () {
+        // Quiz management — route statis HARUS sebelum route {id}
+        Route::post('/kuis', [KuisController::class, 'store']);
     Route::get('/kuis/summary', [KuisController::class, 'summary']);
     Route::post('/kuis/import-excel', [KuisController::class, 'importExcel']);
 
@@ -52,6 +63,8 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/kuis/{kuisId}/hasil/export', [HasilKuisController::class, 'exportCsv']);
     Route::get('/kuis/{kuisId}/hasil/{riwayatId}', [HasilKuisController::class, 'show']);
     Route::get('/kuis/{kuisId}/hasil', [HasilKuisController::class, 'index']);
+    
+    }); // End of verified middleware group
 
     // ── Pusher broadcasting auth (untuk private channel) ─────────────────
     // Frontend mengirim request ke sini saat subscribe ke private-guru.{id}
