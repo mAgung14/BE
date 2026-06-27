@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\HasilKuisController;
 use App\Http\Controllers\Api\KuisController;
 use App\Http\Controllers\Api\SoalController;
 use Illuminate\Support\Facades\Route;
@@ -15,6 +16,9 @@ Route::get('/kuis/public', [KuisController::class, 'publicList']);
 Route::get('/kuis/publik/{id}', [KuisController::class, 'publicShow']);
 Route::get('/kuis/public/{id}', [KuisController::class, 'publicShow']);
 Route::post('/kuis/join', [KuisController::class, 'joinByCode']);
+
+// Submit jawaban kuis (tidak perlu login — peserta hanya isi nama)
+Route::post('/kuis/{kuisId}/submit', [HasilKuisController::class, 'submit']);
 
 // JWT-protected
 Route::middleware('auth:api')->group(function () {
@@ -37,4 +41,9 @@ Route::middleware('auth:api')->group(function () {
     Route::put('/soal/{id}', [SoalController::class, 'update']);
     Route::delete('/soal/{id}', [SoalController::class, 'destroy']);
     Route::post('/kuis/{kuisId}/soal/reorder', [SoalController::class, 'reorder']);
+
+    // Hasil kuis (hanya guru pemilik kuis)
+    Route::get('/kuis/{kuisId}/hasil/export', [HasilKuisController::class, 'exportCsv']);
+    Route::get('/kuis/{kuisId}/hasil/{riwayatId}', [HasilKuisController::class, 'show']);
+    Route::get('/kuis/{kuisId}/hasil', [HasilKuisController::class, 'index']);
 });
