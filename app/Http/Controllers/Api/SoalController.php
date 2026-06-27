@@ -173,13 +173,19 @@ class SoalController extends Controller
         }
 
         $soal->update([
-            'soal_soal' => $validated['soal_soal'] ?? $soal->soal_soal,
-            'poin' => $validated['poin'] ?? $soal->poin,
-            'jawaban_a' => $validated['jawaban_a'] ?? $soal->jawaban_a,
-            'jawaban_b' => $validated['jawaban_b'] ?? $soal->jawaban_b,
-            'jawaban_c' => $validated['jawaban_c'] ?? $soal->jawaban_c,
-            'jawaban_d' => $validated['jawaban_d'] ?? $soal->jawaban_d,
-            'jawaban_benar' => strtolower($validated['jawaban_benar'] ?? $soal->jawaban_benar),
+            'soal_soal'        => $validated['soal_soal'] ?? $soal->soal_soal,
+            'poin'             => $validated['poin'] ?? $soal->poin,
+            'jawaban_a'        => $validated['jawaban_a'] ?? $soal->jawaban_a,
+            'jawaban_b'        => $validated['jawaban_b'] ?? $soal->jawaban_b,
+            'jawaban_c'        => $validated['jawaban_c'] ?? $soal->jawaban_c,
+            'jawaban_d'        => $validated['jawaban_d'] ?? $soal->jawaban_d,
+            'jawaban_benar'    => strtolower($validated['jawaban_benar'] ?? $soal->jawaban_benar),
+            // Gambar — nilai sudah diperbarui di property $soal di atas (jika ada file baru)
+            'gambar_soal'      => $soal->gambar_soal,
+            'gambar_jawaban_a' => $soal->gambar_jawaban_a,
+            'gambar_jawaban_b' => $soal->gambar_jawaban_b,
+            'gambar_jawaban_c' => $soal->gambar_jawaban_c,
+            'gambar_jawaban_d' => $soal->gambar_jawaban_d,
         ]);
 
         return response()->json([
