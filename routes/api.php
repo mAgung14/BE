@@ -50,6 +50,7 @@ Route::middleware('auth:api')->group(function () {
     Route::put('/kuis/{id}', [KuisController::class, 'update']);
     Route::delete('/kuis/{id}', [KuisController::class, 'destroy']);
     Route::post('/kuis/{id}/publish', [KuisController::class, 'publish']);
+    Route::post('/kuis/{id}/start', [KuisController::class, 'start']);
     
     // Questions management
     Route::get('/kuis/{kuisId}/soal', [SoalController::class, 'index']);

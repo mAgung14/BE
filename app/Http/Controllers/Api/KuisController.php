@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\KuisDimulai;
 use App\Events\KuisDipublikasikan;
 use App\Exports\KuisTemplateExport;
 use App\Http\Controllers\Controller;
@@ -355,6 +356,38 @@ class KuisController extends Controller
     }
 
     /**
+     * Start the quiz (broadcast event to participants)
+     */
+    public function start(string $id): JsonResponse
+    {
+        $kuis = Kuis::findOrFail($id);
+
+        // Check authorization
+        if ($kuis->guru_id !== auth()->user()->id) {
+            return response()->json([
+                'message' => 'Unauthorized. Anda tidak memiliki akses ke kuis ini.',
+            ], 403);
+        }
+
+        // Check if quiz is published
+        if (!$kuis->is_published) {
+            return response()->json([
+                'message' => 'Kuis harus dipublikasikan terlebih dahulu sebelum dapat dimulai.',
+            ], 422);
+        }
+
+        // Update status to 'berlangsung' if necessary
+        // $kuis->update(['status' => 'berlangsung']);
+
+        // Broadcast event to participants
+        event(new KuisDimulai($kuis->kuis_id));
+
+        return response()->json([
+            'message' => 'Kuis berhasil dimulai.',
+        ]);
+    }
+
+    /**
      * Import quiz from Excel
      *
      * Struktur file Excel:
@@ -473,6 +506,7 @@ class KuisController extends Controller
     {
         $validated = $request->validate([
             'kode_kuis' => 'required|string',
+            'nama_peserta' => 'sometimes|string',
         ]);
 
         $kuis = Kuis::with(['soal', 'guru'])
@@ -491,6 +525,19 @@ class KuisController extends Controller
             ], 403);
         }
 
+        $peserta = [];
+        if (!empty($validated['nama_peserta'])) {
+            $peserta = \Illuminate\Support\Facades\Cache::get("kuis_{$kuis->kuis_id}_peserta", []);
+            if (!in_array($validated['nama_peserta'], $peserta)) {
+                $peserta[] = $validated['nama_peserta'];
+                \Illuminate\Support\Facades\Cache::put("kuis_{$kuis->kuis_id}_peserta", $peserta, now()->addHours(2));
+                
+                event(new \App\Events\PesertaBergabung($kuis->kuis_id, $peserta));
+            }
+        } else {
+            $peserta = \Illuminate\Support\Facades\Cache::get("kuis_{$kuis->kuis_id}_peserta", []);
+        }
+
         return response()->json([
             'message' => 'Berhasil bergabung dengan kuis.',
             'data' => [
@@ -504,6 +551,7 @@ class KuisController extends Controller
                 'perm_istirahat' => $kuis->perm_istirahat,
                 'jumlah_soal' => $kuis->countSoal(),
                 'total_poin' => $kuis->getTotalPoin(),
+                'peserta_bergabung' => $peserta,
                 'guru' => [
                     'name' => $kuis->guru->nama_lengkap ?? '',
                 ],
