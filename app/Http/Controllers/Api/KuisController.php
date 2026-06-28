@@ -369,11 +369,18 @@ class KuisController extends Controller
             ], 403);
         }
 
-        // Check if quiz is published
+        // Auto-publish untuk kuis private saat guru mengklik mulai
         if (!$kuis->is_published) {
-            return response()->json([
-                'message' => 'Kuis harus dipublikasikan terlebih dahulu sebelum dapat dimulai.',
-            ], 422);
+            if ($kuis->akses === 'private') {
+                $kuis->update([
+                    'is_published' => true,
+                    'status'       => 'aktif',
+                ]);
+            } else {
+                return response()->json([
+                    'message' => 'Kuis publik harus dipublikasikan terlebih dahulu sebelum dapat dimulai.',
+                ], 422);
+            }
         }
 
         // Update status to 'berlangsung' if necessary
@@ -527,6 +534,17 @@ class KuisController extends Controller
 
         $peserta = [];
         if (!empty($validated['nama_peserta'])) {
+            // Cek apakah peserta sudah pernah mengerjakan kuis ini
+            $alreadySubmitted = \App\Models\RiwayatKuis::where('kuis_id', $kuis->kuis_id)
+                ->where('nama_peserta', $validated['nama_peserta'])
+                ->exists();
+
+            if ($alreadySubmitted) {
+                return response()->json([
+                    'message' => 'Anda sudah mengerjakan kuis ini dan tidak bisa bergabung kembali.',
+                ], 403);
+            }
+
             $peserta = \Illuminate\Support\Facades\Cache::get("kuis_{$kuis->kuis_id}_peserta", []);
             if (!in_array($validated['nama_peserta'], $peserta)) {
                 $peserta[] = $validated['nama_peserta'];
@@ -575,6 +593,40 @@ class KuisController extends Controller
                     ];
                 }),
             ],
+        ]);
+    }
+
+    /**
+     * Leave a quiz lobby (remove participant from cache).
+     */
+    public function leave(Request $request, string $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'nama_peserta' => 'required|string',
+        ]);
+
+        $kuis = Kuis::findOrFail($id);
+        $namaPeserta = $validated['nama_peserta'];
+
+        $peserta = \Illuminate\Support\Facades\Cache::get("kuis_{$kuis->kuis_id}_peserta", []);
+        
+        // Cari dan hapus peserta dari array
+        $index = array_search($namaPeserta, $peserta);
+        if ($index !== false) {
+            unset($peserta[$index]);
+            // Re-index array setelah unset
+            $peserta = array_values($peserta);
+            
+            // Simpan kembali ke cache
+            \Illuminate\Support\Facades\Cache::put("kuis_{$kuis->kuis_id}_peserta", $peserta, now()->addHours(2));
+            
+            // Broadcast event Daftar Peserta Diperbarui (menggunakan event PesertaBergabung untuk kemudahan)
+            event(new \App\Events\PesertaBergabung($kuis->kuis_id, $peserta));
+        }
+
+        return response()->json([
+            'message' => 'Berhasil keluar dari kuis.',
+            'peserta_bergabung' => $peserta,
         ]);
     }
 }

@@ -27,6 +27,7 @@ Route::get('/kuis/public', [KuisController::class, 'publicList']);
 Route::get('/kuis/publik/{id}', [KuisController::class, 'publicShow']);
 Route::get('/kuis/public/{id}', [KuisController::class, 'publicShow']);
 Route::post('/kuis/join', [KuisController::class, 'joinByCode']);
+Route::post('/kuis/{kuisId}/leave', [KuisController::class, 'leave']);
 
 // Submit jawaban kuis (tidak perlu login — peserta hanya isi nama)
 Route::post('/kuis/{kuisId}/submit', [HasilKuisController::class, 'submit']);
