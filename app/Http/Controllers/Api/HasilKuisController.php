@@ -296,6 +296,17 @@ class HasilKuisController extends Controller
             'jawaban.*.jawaban_dipilih' => 'nullable|string|in:a,b,c,d',
         ]);
 
+        // Cek apakah peserta sudah mengumpulkan sebelumnya
+        $alreadySubmitted = RiwayatKuis::where('kuis_id', $kuis->kuis_id)
+            ->where('nama_peserta', $validated['nama_peserta'])
+            ->exists();
+
+        if ($alreadySubmitted) {
+            return response()->json([
+                'message' => 'Anda sudah mengumpulkan kuis ini sebelumnya.',
+            ], 403);
+        }
+
         // Buat map soal_id → jawaban_benar untuk verifikasi cepat
         $soalMap = $kuis->soal->keyBy('id');
 
